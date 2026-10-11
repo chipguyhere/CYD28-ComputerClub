@@ -29,8 +29,10 @@ These boards all have a 240x320 SPI screen, XPT2046 resistive touch, a
 microSD slot, a speaker output, an RGB LED, 4 MB of flash and no PSRAM.
 Boards that look alike can differ inside: the LED and amplifier pins
 differ between the two models, and the screen controller differs between
-batches of the same model. None of this can be detected by software, so
-**the first time the board starts, it asks you** (see below).
+batches of the same model. The firmware reads the screen controller from
+the screen itself on the boards tried so far, but the board model can't be
+detected by software, so **the first time the board starts, it asks you**
+(see below).
 
 Other CYDs (capacitive touch, 3.5"/4.3" and larger screens, ESP32-S3
 models) are **not** supported.
@@ -39,15 +41,34 @@ models) are **not** supported.
 
 | File | What it is |
 |---|---|
-| `cyd-YYYYMMDD-HHMM-ask.bin` | The whole 4 MB flash: firmware plus an empty filesystem. Use this to install on a new board. Write it at **address 0x0**. |
-| `cyd-YYYYMMDD-HHMM.fw` | The same firmware as an **upgrade file** for the SD card. It upgrades a board that already runs this firmware and keeps the board's files and settings. |
+| `cyd28-computerclub.bin` | The whole 4 MB flash: firmware plus an empty filesystem. Use this to install on a new board. Write it at **address 0x0**. |
+| `cyd28-computerclub.fw` | The same firmware as an **upgrade file** for the SD card. It upgrades a board that already runs this firmware and keeps the board's files and settings. |
 | `LICENSE` | The licence (MIT) and the licences of the parts it's built from. |
 
-## Installing: just a web browser
+Each new release has the **same file names**, so the newest download always
+has `cyd28-computerclub.bin` and `cyd28-computerclub.fw`. To tell versions
+apart, look at the build date: the FIRMWARE screen (below) shows the
+board's own and each `.fw` file's, and `club.firmware_info()` has it too.
 
-No software to install: use Espressif's web flasher in **Chrome or Edge on
-a desktop computer** (these browsers can talk to USB serial ports; Firefox
-and Safari can't).
+## Installing: one click
+
+In **Chrome or Edge on a desktop computer** (these browsers can talk to
+USB serial ports; Firefox and Safari can't):
+
+1. Plug the board in with a USB **data** cable (some cables only charge).
+2. Open **[the club firmware in ESP Launchpad](https://espressif.github.io/esp-launchpad/minimal-launchpad/?flashConfigURL=https://raw.githubusercontent.com/chipguyhere/CYD28-ComputerClub/main/launchpad.toml)**.
+3. Click **Connect**, pick the board's port (*USB-SERIAL CH340* or
+   similar), and let it flash. It erases the board and writes the newest
+   firmware, straight from this page: nothing to download first.
+4. Press **RST** on the board (or unplug it and plug it back in).
+
+If the launchpad won't connect or doesn't load, hold **BOOT**, press and
+release **RST**, let go of BOOT and try again, or use the flasher below.
+
+## Installing: the web flasher
+
+No software to install either: use Espressif's web flasher, in the same
+browsers.
 
 1. Unzip the download.
 2. Plug the board in with a USB **data** cable (some cables only charge).
@@ -56,7 +77,7 @@ and Safari can't).
    the board's port (*USB-SERIAL CH340* or similar). If it won't connect,
    try 115200, or hold **BOOT**, press and release **RST**, then let go of
    BOOT and try again.
-5. Set **Flash Address** to **`0x0`**, choose the `...-ask.bin` file, and
+5. Set **Flash Address** to **`0x0`**, choose `cyd28-computerclub.bin`, and
    click **Program**. It takes about a minute.
 6. Press **RST** on the board (or unplug it and plug it back in).
 
@@ -67,7 +88,7 @@ separate erase is needed.
 With `esptool` on the command line, it's the same address:
 
 ```
-esptool --port COM3 --baud 921600 write-flash 0x0 cyd-YYYYMMDD-HHMM-ask.bin
+esptool --port COM3 --baud 921600 write-flash 0x0 cyd28-computerclub.bin
 ```
 
 (`/dev/ttyUSB0` or similar on Linux and macOS instead of `COM3`.) On most
@@ -80,21 +101,26 @@ A freshly flashed board asks which board it is. None of the questions
 depend on the touch screen being calibrated or on knowing which way up the
 screen is:
 
-1. **The screen.** The picture switches between the two screen-controller
-   settings every 3 seconds. Touch the screen anywhere (or press BOOT) while
+1. **The screen** -- only if the screen didn't say which controller it has.
+   The picture switches between the two screen-controller settings every 3
+   seconds. Touch the screen anywhere (or press BOOT) while
    the words read normally, the box is red and the white frame goes all the
    way round.
 2. **The board.** The LED is lit so that it shows a different colour on each
-   model: **magenta on the ESP32-32E, blue on the ESP32-2432S028**. The
-   screen switches between "LED is MAGENTA" and "LED is BLUE": touch when it
-   matches.
+   model: **magenta on the ESP32-32E, blue on the ESP32-2432S028**. Tap
+   the MAGENTA or the BLUE button, whichever matches.
 3. **The touch screen.** *Calibrate now or later?* (Later: hold BOOT for 5
    seconds on the home screen, or run *Touch Calibration* from PROGRAMS.)
 
-The answers are saved in a small file on the board, `/board.txt`, and the
-board restarts into its home screen. To be asked again, put `ask` in that
-file (`open('/board.txt', 'w').write('ask')` at the `>>>` prompt) and press
-RST.
+The answers are saved in a small file on the board, `/board.txt` (and the
+board model in the board's settings too, so deleting the file is
+harmless), and the board restarts into its home screen. If you copy a
+whole flash image from one board to another with a different screen, it
+asks again (once). To be asked again, hold BOOT for 10 seconds on the
+home screen, tap **Board:** on the FIRMWARE screen, and then **Redetect**.
+(Or put `ask` in that file, `open('/board.txt', 'w').write('ask')` at the
+`>>>` prompt, and press RST.) Updating the firmware from the SD card keeps
+the answers.
 
 ## Vibe coding with Claude Code (or another coding agent)
 
@@ -173,15 +199,17 @@ by hand or from a program:
   `club.calibrate()`.
 - **Firmware:** `club.firmware_export('/sd/backup.fw')` saves the running
   firmware to the SD card as an upgrade file, to give to another board;
-  `club.firmware_update('/sd/cyd-....fw')` installs one. Both keep the
+  `club.firmware_update('/sd/cyd28-computerclub.fw')` installs one. Both keep the
   board's own files and settings.
 
 ## Upgrading from the SD card (`.fw` files)
 
 A board that already runs this firmware upgrades without a computer:
 
-1. Copy the `.fw` file to the **top folder** of the SD card (not into a
-   folder) and put the card in the board.
+1. Copy `cyd28-computerclub.fw` to the **top folder** of the SD card (not
+   into a folder; replace an older copy with the same name) and put the
+   card in the board. If the board was already on, press **RST** so it
+   sees the card.
 2. On the home screen (or PROGRAMS), **hold BOOT for 10 seconds**. A countdown
    appears after one second; keep holding past *"Let go now for touch
    calibration"* until the **FIRMWARE** screen opens.
@@ -190,15 +218,16 @@ A board that already runs this firmware upgrades without a computer:
    (the screen shows progress) and starts the new firmware. It takes about
    half a minute. **Your files and settings are kept.**
 
-From the `>>>` prompt the same is `club.firmware_update('/sd/cyd-YYYYMMDD-HHMM.fw')`.
+From the `>>>` prompt the same is `club.firmware_update('/sd/cyd28-computerclub.fw')`.
 A damaged file, or one for different hardware, is refused before anything
 is written. If the power fails during an upgrade, the updater simply starts
 again at the next power-on.
 
 ## Versions
 
-MicroPython 1.27.0, LVGL 9.4.0, ESP-IDF 5.5.1. The build date is in the
-file names and in `club.firmware_info()`.
+MicroPython 1.27.0, LVGL 9.4.0, ESP-IDF 5.5.1. The build date is inside
+the files (the file names stay the same from release to release): the
+FIRMWARE screen and `club.firmware_info()` show it.
 
 ## Licence
 
