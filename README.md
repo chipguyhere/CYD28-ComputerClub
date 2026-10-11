@@ -52,13 +52,22 @@ board's own and each `.fw` file's, and `club.firmware_info()` has it too.
 
 ## Installing: one click
 
+> [!WARNING]
+> **This erases everything on the board**: whatever firmware or Arduino
+> sketch it has now, every program and file saved on it, and its touch
+> calibration. The launchpad doesn't ask "are you sure?": a click or two
+> after **Connect**, it is already erasing. If the board has work on it you
+> want to keep, copy that to your computer first (with Thonny, or
+> `mpremote cp`).
+
 In **Chrome or Edge on a desktop computer** (these browsers can talk to
 USB serial ports; Firefox and Safari can't):
 
 1. Plug the board in with a USB **data** cable (some cables only charge).
-2. Open **[the club firmware in ESP Launchpad](https://espressif.github.io/esp-launchpad/minimal-launchpad/?flashConfigURL=https://raw.githubusercontent.com/chipguyhere/CYD28-ComputerClub/main/launchpad.toml)**.
+2. Open **[the club firmware in ESP Launchpad](https://espressif.github.io/esp-launchpad/minimal-launchpad/?flashConfigURL=https://raw.githubusercontent.com/chipguyhere/CYD28-ComputerClub/main/launchpad.toml)**
+   (this erases the whole board: see the warning above).
 3. Click **Connect**, pick the board's port (*USB-SERIAL CH340* or
-   similar), and let it flash. It erases the board and writes the newest
+   similar), and let it flash. It **erases the board** and writes the newest
    firmware, straight from this page: nothing to download first.
 4. Press **RST** on the board (or unplug it and plug it back in).
 
